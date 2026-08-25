@@ -21,7 +21,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "Pauser"
+                      "symbol": "Minter"
                     }
                   ]
                 },
@@ -91,7 +91,7 @@
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-                    }
+                        }
                   ]
                 },
                 "durability": "persistent",
@@ -117,7 +117,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "Pauser"
+                      "symbol": "SuperAdmin"
                     }
                   ]
                 },
@@ -144,7 +144,7 @@
                     {
                       "vec": [
                         {
-                          "symbol": "Pauser"
+                          "symbol": "SuperAdmin"
                         }
                       ]
                     },
@@ -306,7 +306,7 @@
         "contract_id": "0000000000000000000000000000000000000000000000000000000000000001",
         "type_": "contract",
         "body": {
-          "v0": {
+    {
             "topics": [
               {
                 "symbol": "role_grnt"
@@ -320,7 +320,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "Pauser"
+                      "symbol": "Minter"
                     }
                   ]
                 },
@@ -333,6 +333,9 @@
         }
       },
       "failed_call": false
+    }
+  ]
+}alse
     }
   ]
 }
