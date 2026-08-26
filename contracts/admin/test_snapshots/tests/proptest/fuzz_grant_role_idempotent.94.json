@@ -21,7 +21,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "SuperAdmin"
+                      "symbol": "Admin"
                     }
                   ]
                 },
@@ -50,7 +50,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "SuperAdmin"
+                      "symbol": "Admin"
                     }
                   ]
                 },
@@ -79,7 +79,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "SuperAdmin"
+                      "symbol": "Admin"
                     }
                   ]
                 },
@@ -108,7 +108,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "SuperAdmin"
+                      "symbol": "Admin"
                     }
                   ]
                 },
@@ -137,7 +137,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "SuperAdmin"
+                      "symbol": "Admin"
                     }
                   ]
                 },
@@ -166,7 +166,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "SuperAdmin"
+                      "symbol": "Admin"
                     }
                   ]
                 },
@@ -199,7 +199,14 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "RoleMask"
+                  "symbol": "Role"
+                },
+                {
+                  "vec": [
+                    {
+                      "symbol": "Admin"
+                    }
+                  ]
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
@@ -219,7 +226,14 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "RoleMask"
+                      "symbol": "Role"
+                    },
+                    {
+                      "vec": [
+                        {
+                          "symbol": "Admin"
+                        }
+                      ]
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
@@ -228,7 +242,7 @@
                 },
                 "durability": "persistent",
                 "val": {
-                  "u32": 1
+                  "bool": true
                 }
               }
             },
@@ -244,7 +258,14 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "RoleMask"
+                  "symbol": "Role"
+                },
+                {
+                  "vec": [
+                    {
+                      "symbol": "Admin"
+                    }
+                  ]
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
@@ -264,7 +285,14 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "RoleMask"
+                      "symbol": "Role"
+                    },
+                    {
+                      "vec": [
+                        {
+                          "symbol": "Admin"
+                        }
+                      ]
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
@@ -273,7 +301,7 @@
                 },
                 "durability": "persistent",
                 "val": {
-                  "u32": 4
+                  "bool": true
                 }
               }
             },
@@ -569,7 +597,7 @@
                 {
                   "vec": [
                     {
-                      "symbol": "SuperAdmin"
+                      "symbol": "Admin"
                     }
                   ]
                 },
