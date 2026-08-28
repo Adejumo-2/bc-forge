@@ -1604,6 +1604,7 @@ mod tests {
 
     mod gas_bench;
     mod proptest;
+    mod quorum_proptest;
 
     #[contract]
     struct AdminContract;
