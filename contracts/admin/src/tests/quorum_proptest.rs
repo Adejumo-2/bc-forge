@@ -155,15 +155,15 @@ proptest! {
             &String::from_str(&env, "fuzz"),
         );
 
-        let extra_needed = threshold.saturating_sub(1) as usize;
-        let max_extra = (pool_size - 1) as usize;
+        let extra_needed = threshold.saturating_sub(1);
+        let max_extra = pool_size - 1;
         let extras_to_add = extra_needed.min(max_extra);
         for i in 1..=extras_to_add {
             let approver = pool.get(i).unwrap();
             client.approve_proposal(&approver, &id);
         }
 
-        let approvals_count = 1 + extras_to_add as u32;
+        let approvals_count = 1 + extras_to_add;
         prop_assert_eq!(
             client.is_proposal_ready(&id),
             approvals_count >= threshold,
@@ -190,7 +190,7 @@ proptest! {
             &pool.get(0).unwrap(),
             &String::from_str(&env, "boundary"),
         );
-        for i in 1..threshold as usize {
+        for i in 1..threshold {
             client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
         prop_assert!(client.is_proposal_ready(&id));
@@ -213,7 +213,7 @@ proptest! {
             &pool.get(0).unwrap(),
             &String::from_str(&env, "short"),
         );
-        for i in 1..threshold.saturating_sub(1) as usize {
+        for i in 1..threshold.saturating_sub(1) {
             client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
         prop_assert!(!client.is_proposal_ready(&id));
@@ -264,7 +264,7 @@ proptest! {
             &pool.get(0).unwrap(),
             &String::from_str(&env, "ready"),
         );
-        let extra = (threshold as usize + 1).min(pool_size as usize);
+        let extra = (threshold + 1).min(pool_size);
         for i in 1..extra {
             client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
@@ -288,7 +288,7 @@ proptest! {
             &pool.get(0).unwrap(),
             &String::from_str(&env, "double"),
         );
-        let extra = (threshold as usize + 1).min(pool_size as usize);
+        let extra = (threshold + 1).min(pool_size);
         for i in 1..extra {
             client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
@@ -382,12 +382,12 @@ proptest! {
 
         let approvals_needed =
             ((pool_size as f64 * approvals_pct).floor() as u32).min(pool_size);
-        let extras = approvals_needed.saturating_sub(1) as usize;
+        let extras = approvals_needed.saturating_sub(1);
         for i in 1..=extras {
             client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
 
-        let total_approvals = 1 + extras as u32;
+        let total_approvals = 1 + extras;
         prop_assert_eq!(
             client.is_proposal_ready(&id),
             total_approvals >= threshold,
@@ -416,12 +416,12 @@ proptest! {
             &String::from_str(&env, "max pool"),
         );
 
-        let extras = approvals_count.saturating_sub(1) as usize;
-        for i in 1..=extras.min(63) {
+        let extras = approvals_count.saturating_sub(1).min(63);
+        for i in 1..=extras {
             client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
 
-        let total = 1 + extras.min(63) as u32;
+        let total = 1 + extras;
         prop_assert_eq!(
             client.is_proposal_ready(&id),
             total >= t,
