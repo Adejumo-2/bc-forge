@@ -30,8 +30,7 @@ fn setup_admin(env: &Env) -> (AdminContractClient<'_>, Address) {
 /// Generate `size` random addresses; return the soroban `Vec` and a plain
 /// `std::vec::Vec` for index lookups.
 fn gen_pool(env: &Env, size: u32) -> (Vec<Address>, std::vec::Vec<Address>) {
-    let addrs: std::vec::Vec<Address> =
-        (0..size).map(|_| Address::generate(env)).collect();
+    let addrs: std::vec::Vec<Address> = (0..size).map(|_| Address::generate(env)).collect();
     let mut pool = sdk_vec![env];
     for a in &addrs {
         pool.push_back(a.clone());
