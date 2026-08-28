@@ -5,12 +5,13 @@
 
 #![cfg(test)]
 
+extern crate std;
+
 use proptest::prelude::*;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{vec as sdk_vec, Address, Env, String, Vec};
 
 use super::{AdminContract, AdminContractClient};
-use crate::AdminError;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -27,15 +28,13 @@ fn setup_admin(env: &Env) -> (AdminContractClient<'_>, Address) {
     (client, admin)
 }
 
-/// Generate `size` random addresses; return the soroban `Vec` and a plain
-/// `std::vec::Vec` for index lookups.
-fn gen_pool(env: &Env, size: u32) -> (Vec<Address>, std::vec::Vec<Address>) {
-    let addrs: std::vec::Vec<Address> = (0..size).map(|_| Address::generate(env)).collect();
+/// Generate `size` random addresses as a soroban `Vec`.
+fn gen_pool(env: &Env, size: u32) -> Vec<Address> {
     let mut pool = sdk_vec![env];
-    for a in &addrs {
-        pool.push_back(a.clone());
+    for _ in 0..size {
+        pool.push_back(Address::generate(env));
     }
-    (pool, addrs)
+    pool
 }
 
 /// Compute threshold from pool size and percentage, clamped to [1, pool_size].
@@ -80,7 +79,7 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, _addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
         let threshold = t.min(pool_size);
         client.set_admin_pool(&pool, &threshold);
         prop_assert_eq!(client.get_threshold(), threshold);
@@ -91,7 +90,7 @@ proptest! {
     fn threshold_zero_panics(pool_size in arb_pool_size()) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, _addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
         prop_assert!(
             client.try_set_admin_pool(&pool, &0).is_err(),
             "threshold 0 must be rejected"
@@ -103,7 +102,7 @@ proptest! {
     fn threshold_exceeding_pool_panics(pool_size in arb_pool_size()) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, _addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
         let bad = pool_size + 1;
         prop_assert!(
             client.try_set_admin_pool(&pool, &bad).is_err(),
@@ -124,7 +123,7 @@ proptest! {
     fn get_admin_pool_returns_stored(pool_size in arb_pool_size()) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, _addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
         client.set_admin_pool(&pool, &1);
         prop_assert_eq!(client.get_admin_pool().len(), pool_size);
     }
@@ -145,12 +144,12 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
 
         let threshold = compute_threshold(pool_size, pct);
         client.set_admin_pool(&pool, &threshold);
 
-        let creator = addrs[0].clone();
+        let creator = pool.get(0).unwrap();
         let id = client.create_proposal(
             &creator,
             &String::from_str(&env, "fuzz"),
@@ -158,12 +157,13 @@ proptest! {
 
         let extra_needed = threshold.saturating_sub(1) as usize;
         let max_extra = (pool_size - 1) as usize;
-        for i in 0..extra_needed.min(max_extra) {
-            client.approve_proposal(&addrs[i + 1].clone(), &id);
+        let extras_to_add = extra_needed.min(max_extra);
+        for i in 1..=extras_to_add {
+            let approver = pool.get(i).unwrap();
+            client.approve_proposal(&approver, &id);
         }
 
-        let extras_added = extra_needed.min(max_extra) as u32;
-        let approvals_count = 1 + extras_added;
+        let approvals_count = 1 + extras_to_add as u32;
         prop_assert_eq!(
             client.is_proposal_ready(&id),
             approvals_count >= threshold,
@@ -181,17 +181,17 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
 
         let threshold = compute_threshold(pool_size, pct);
         client.set_admin_pool(&pool, &threshold);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "boundary"),
         );
-        for a in addrs.iter().take(threshold as usize).skip(1) {
-            client.approve_proposal(a, &id);
+        for i in 1..threshold as usize {
+            client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
         prop_assert!(client.is_proposal_ready(&id));
     }
@@ -204,18 +204,17 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
 
         let threshold = compute_threshold(pool_size, pct).max(2).min(pool_size);
         client.set_admin_pool(&pool, &threshold);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "short"),
         );
-        let extras = threshold.saturating_sub(2) as usize;
-        for i in 0..extras {
-            client.approve_proposal(&addrs[i + 1].clone(), &id);
+        for i in 1..threshold.saturating_sub(1) as usize {
+            client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
         prop_assert!(!client.is_proposal_ready(&id));
     }
@@ -236,13 +235,13 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
 
         let threshold = compute_threshold(pool_size, pct).max(2).min(pool_size);
         client.set_admin_pool(&pool, &threshold);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "not ready"),
         );
         prop_assert!(client.try_mark_executed(&id).is_err());
@@ -256,17 +255,18 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
 
         let threshold = compute_threshold(pool_size, pct);
         client.set_admin_pool(&pool, &threshold);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "ready"),
         );
-        for a in addrs.iter().take((threshold as usize + 1).min(pool_size as usize)).skip(1) {
-            client.approve_proposal(a, &id);
+        let extra = (threshold as usize + 1).min(pool_size as usize);
+        for i in 1..extra {
+            client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
         client.mark_executed(&id);
     }
@@ -279,17 +279,18 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
 
         let threshold = compute_threshold(pool_size, pct);
         client.set_admin_pool(&pool, &threshold);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "double"),
         );
-        for a in addrs.iter().take((threshold as usize + 1).min(pool_size as usize)).skip(1) {
-            client.approve_proposal(a, &id);
+        let extra = (threshold as usize + 1).min(pool_size as usize);
+        for i in 1..extra {
+            client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
         client.mark_executed(&id);
         prop_assert!(client.try_mark_executed(&id).is_err());
@@ -308,7 +309,7 @@ proptest! {
     fn non_pool_member_cannot_create(pool_size in arb_pool_size()) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, _addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
         client.set_admin_pool(&pool, &1);
 
         let outsider = Address::generate(&env);
@@ -325,11 +326,11 @@ proptest! {
     fn non_pool_member_cannot_approve(pool_size in arb_pool_size()) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
         client.set_admin_pool(&pool, &pool_size);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "test"),
         );
         let outsider = Address::generate(&env);
@@ -341,15 +342,15 @@ proptest! {
     fn duplicate_approval_rejected(pool_size in 2..=64u32) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
         client.set_admin_pool(&pool, &pool_size);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "dup"),
         );
         // Creator is auto-added by create_proposal; second approval must fail.
-        prop_assert!(client.try_approve_proposal(&addrs[0].clone(), &id).is_err());
+        prop_assert!(client.try_approve_proposal(&pool.get(0).unwrap(), &id).is_err());
     }
 }
 
@@ -369,21 +370,21 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, pool_size);
+        let pool = gen_pool(&env, pool_size);
 
         let threshold = compute_threshold(pool_size, pct);
         client.set_admin_pool(&pool, &threshold);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "pct fuzz"),
         );
 
         let approvals_needed =
             ((pool_size as f64 * approvals_pct).floor() as u32).min(pool_size);
         let extras = approvals_needed.saturating_sub(1) as usize;
-        for i in 0..extras {
-            client.approve_proposal(&addrs[i + 1].clone(), &id);
+        for i in 1..=extras {
+            client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
 
         let total_approvals = 1 + extras as u32;
@@ -406,18 +407,18 @@ proptest! {
     ) {
         let env = Env::default();
         let (client, _admin) = setup_admin(&env);
-        let (pool, addrs) = gen_pool(&env, 64);
+        let pool = gen_pool(&env, 64);
 
         client.set_admin_pool(&pool, &t);
 
         let id = client.create_proposal(
-            &addrs[0].clone(),
+            &pool.get(0).unwrap(),
             &String::from_str(&env, "max pool"),
         );
 
         let extras = approvals_count.saturating_sub(1) as usize;
-        for i in 0..extras.min(63) {
-            client.approve_proposal(&addrs[i + 1].clone(), &id);
+        for i in 1..=extras.min(63) {
+            client.approve_proposal(&pool.get(i).unwrap(), &id);
         }
 
         let total = 1 + extras.min(63) as u32;
